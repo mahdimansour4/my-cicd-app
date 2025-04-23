@@ -1,0 +1,17 @@
+# k8s/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-cicd-app-service # A unique name for the service
+spec:
+  selector:
+    app: my-cicd-app # Route traffic to pods with this label (must match deployment's pod label)
+  ports:
+  - protocol: TCP
+    port: 80       # Port the service will listen on INSIDE the cluster
+    targetPort: 8080 # Port on the PODs to forward traffic to (must match containerPort)
+  # Change type based on your cluster:
+  # LoadBalancer: Good for cloud providers (GKE, EKS, AKS) - gets an external IP.
+  # NodePort: Good for local testing (Minikube) - exposes on Node's IP:Port.
+  # ClusterIP: Default - only reachable inside the cluster.
+  type: NodePort # Set to NodePort for Minikube/local, or LoadBalancer for cloud

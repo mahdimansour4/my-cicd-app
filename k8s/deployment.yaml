@@ -1,0 +1,34 @@
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-cicd-app-deployment # A unique name for the deployment
+spec:
+  replicas: 2 # Run 2 instances (pods) of the application
+  selector:
+    matchLabels:
+      app: my-cicd-app # Find pods with this label to manage
+  template: # Blueprint for the pods Kubernetes will create
+    metadata:
+      labels:
+        app: my-cicd-app # Apply this label to the pods
+    spec:
+      containers:
+      - name: my-cicd-app-container # Name for the container inside the pod
+        # This image tag will be updated by Jenkins during deployment
+        image: mahdimansour/my-cicd-app:latest
+        ports:
+        - containerPort: 8080 # Port your Spring Boot app listens on INSIDE the container
+        # Health Checks (using Spring Boot Actuator endpoints)
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 45
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
