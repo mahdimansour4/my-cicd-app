@@ -79,34 +79,19 @@ pipeline {
         // --- END OF NEW DOCKER STAGES ---
         // --- ADD THIS ENTIRE STAGE ---
         stage('Deploy to Kubernetes') {
-             steps {
-                 echo "Deploying image ${env.DOCKER_IMAGE} to Kubernetes namespace ${env.K8S_NAMESPACE}..."
-                 // --- ADD withEnv block ---
-                 withEnv(['KUBECONFIG=/var/lib/jenkins/.kube/config']) {
-                     // This assumes the config file is at the standard location for the 'jenkins' user
-                     // If your manual test revealed a different path, use that path instead.
-                     script {
-                         // Now these kubectl commands will use the specified KUBECONFIG
-
-                         // Optional: Verify kubectl works within this env
-                         // sh "kubectl config current-context"
-                         // sh "kubectl get nodes"
-
-                         // Ensure kubectl uses the correct namespace for subsequent commands
-                         sh "kubectl config set-context --current --namespace=${env.K8S_NAMESPACE}"
-
-                         // Apply the deployment and service manifests
-                         sh "kubectl apply -f k8s/"
-
-                         // Update the image tag in the specific deployment to trigger a rollout
-                         sh "kubectl set image deployment/${env.K8S_DEPLOYMENT} ${env.K8S_CONTAINER}=${env.DOCKER_IMAGE}"
-
-                         // Wait for the deployment rollout to complete successfully
-                         sh "kubectl rollout status deployment/${env.K8S_DEPLOYMENT}"
+                 steps {
+                     echo "Deploying image ${env.DOCKER_IMAGE} to Kubernetes namespace ${env.K8S_NAMESPACE}..."
+                     withEnv(['KUBECONFIG=/var/lib/jenkins/.kube/config']) { // Keep this
+                         script {
+                             // Original commands:
+                             sh "kubectl config set-context --current --namespace=${env.K8S_NAMESPACE}"
+                             sh "kubectl apply -f k8s/"
+                             sh "kubectl set image deployment/${env.K8S_DEPLOYMENT} ${env.K8S_CONTAINER}=${env.DOCKER_IMAGE}"
+                             sh "kubectl rollout status deployment/${env.K8S_DEPLOYMENT}"
+                         }
                      }
-                 } // --- END withEnv block ---
-             }
-        }
+                 }
+            }
         // --- END OF NEW STAGE ---
     }
     post {
