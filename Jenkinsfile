@@ -46,18 +46,17 @@ pipeline {
         // --- NEW DOCKER STAGES ---
         stage('Build Docker Image') {
             steps {
-                echo "Building Docker image: ${env.DOCKER_IMAGE}"
-                // --- DIAGNOSTIC STEPS ---
-                sh 'echo "--- Checking Workspace ---"'
-                sh 'pwd' // Print current directory
-                sh 'ls -la' // List all files (check for Dockerfile)
-                sh 'echo "--- Checking target directory ---"'
-                sh 'ls -la target/' // Check for the JAR file produced by Maven
-                sh 'echo "--- Diagnostics End ---"'
-                // --- END DIAGNOSTIC STEPS ---
+                // ... echo and other diagnostic steps ...
                 script {
-                     // docker.build(env.DOCKER_IMAGE, ".") // Comment out original
-                     docker.build("mahdimansour/my-cicd-app:testbuild", ".") // Use simple test tag
+                    echo "Attempting to build ${env.DOCKER_IMAGE}..."
+                    docker.build(env.DOCKER_IMAGE, ".")
+                    // --- ADD VERIFICATION STEP ---
+                    sh "echo '--- Verifying Local Docker Images After Build ---'"
+                    // List images and filter for your app name to check tag
+                    sh "docker images | grep ${env.APP_NAME} || true"
+                    // The '|| true' prevents the pipeline failing if grep finds nothing
+                    sh "echo '--- Verification End ---'"
+                    // --- END VERIFICATION STEP ---
                 }
             }
         }
