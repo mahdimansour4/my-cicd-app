@@ -81,25 +81,30 @@ pipeline {
         stage('Deploy to Kubernetes') {
              steps {
                  echo "Deploying image ${env.DOCKER_IMAGE} to Kubernetes namespace ${env.K8S_NAMESPACE}..."
-                 script {
-                     // This assumes kubectl is installed on the agent and configured
-                     // to talk to your target cluster (e.g., via ~/.kube/config).
-                     // It also assumes Jenkins runs with permissions to execute kubectl.
+                 // --- ADD withEnv block ---
+                 withEnv(['KUBECONFIG=/var/lib/jenkins/.kube/config']) {
+                     // This assumes the config file is at the standard location for the 'jenkins' user
+                     // If your manual test revealed a different path, use that path instead.
+                     script {
+                         // Now these kubectl commands will use the specified KUBECONFIG
 
-                     // Ensure kubectl uses the correct namespace for subsequent commands
-                     sh "kubectl config set-context --current --namespace=${env.K8S_NAMESPACE}"
+                         // Optional: Verify kubectl works within this env
+                         // sh "kubectl config current-context"
+                         // sh "kubectl get nodes"
 
-                     // Apply the deployment and service manifests
-                     // This creates them if they don't exist, or updates them if they do.
-                     sh "kubectl apply -f k8s/"
+                         // Ensure kubectl uses the correct namespace for subsequent commands
+                         sh "kubectl config set-context --current --namespace=${env.K8S_NAMESPACE}"
 
-                     // Update the image tag in the specific deployment to trigger a rollout
-                     // Uses variables defined in the environment block
-                     sh "kubectl set image deployment/${env.K8S_DEPLOYMENT} ${env.K8S_CONTAINER}=${env.DOCKER_IMAGE}"
+                         // Apply the deployment and service manifests
+                         sh "kubectl apply -f k8s/"
 
-                     // Wait for the deployment rollout to complete successfully
-                     sh "kubectl rollout status deployment/${env.K8S_DEPLOYMENT}"
-                 }
+                         // Update the image tag in the specific deployment to trigger a rollout
+                         sh "kubectl set image deployment/${env.K8S_DEPLOYMENT} ${env.K8S_CONTAINER}=${env.DOCKER_IMAGE}"
+
+                         // Wait for the deployment rollout to complete successfully
+                         sh "kubectl rollout status deployment/${env.K8S_DEPLOYMENT}"
+                     }
+                 } // --- END withEnv block ---
              }
         }
         // --- END OF NEW STAGE ---
