@@ -1,17 +1,19 @@
-# Use a slim Java Runtime base image (ensure JDK version matches your project)
-FROM openjdk:17-jdk-slim
-
-# Set working directory inside the container
+# Stage 1: Build the application using Maven
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
+# Copy pom.xml first to leverage Docker cache for dependencies
+COPY pom.xml .
+# Download dependencies (this layer is cached if pom.xml doesn't change)
+RUN mvn dependency:go-offline
+# Copy the rest of the source code
+COPY src ./src
+# Package the application (compile, test, create JAR)
+RUN mvn package -DskipTests
 
-# Copy the executable JAR file created by Maven into the image's root
-# This assumes the JAR is in the 'target' directory after the Maven build
-# Use ARG for flexibility if needed, but this is simpler for now
-COPY target/*.jar app.jar
-
-# Expose the port the application runs on (default for Spring Boot is 8080)
-# This is the port *inside* the container
+# Stage 2: Create the final lightweight runtime image
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+# Copy *only* the application JAR from the build stage
+COPY --from=build /app/target/my-cicd-app-*.jar app.jar
 EXPOSE 8080
-
-# Command to run the application when the container starts
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java","-jar","/app/app.jar"]

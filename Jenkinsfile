@@ -56,7 +56,8 @@ pipeline {
                 sh 'echo "--- Diagnostics End ---"'
                 // --- END DIAGNOSTIC STEPS ---
                 script {
-                     docker.build(env.DOCKER_IMAGE, ".")
+                     // docker.build(env.DOCKER_IMAGE, ".") // Comment out original
+                     docker.build("mahdimansour/my-cicd-app:testbuild", ".") // Use simple test tag
                 }
             }
         }
