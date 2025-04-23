@@ -17,6 +17,7 @@ pipeline {
             steps {
                 echo 'Building and testing...'
                 // Use sh for Linux/macOS agents, bat for Windows
+                sh 'chmod +x mvnw'
                 sh './mvnw clean package'
             }
             post {
