@@ -6,17 +6,18 @@ pipeline {
     }
 
     environment {
-        // Define registry and image name - REPLACE 'your-dockerhub-username'
         DOCKER_REGISTRY = 'mahdimansour'
         APP_NAME        = 'my-cicd-app'
-        // Use the Jenkins BUILD_NUMBER for unique image tags
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
-        // Full image name including registry path
         DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${APP_NAME}:${IMAGE_TAG}"
-        // Credentials ID for Docker Hub/Registry configured in Jenkins
-        REGISTRY_CREDS  = 'dockerhub-creds' // REPLACE if you use a different ID
-    }
+        REGISTRY_CREDS  = 'dockerhub-creds'
 
+        // --- ADD THESE FOR KUBERNETES ---
+        K8S_DEPLOYMENT  = 'my-cicd-app-deployment' // Matches 'name' in deployment.yaml
+        K8S_NAMESPACE   = 'default' // Target Kubernetes namespace (change if needed)
+        K8S_CONTAINER   = 'my-cicd-app-container' // Matches 'name' under containers in deployment.yaml
+        // Optional: KUBECONFIG_CREDS = 'kubeconfig-credentials-id' // If using Jenkins credentials for kubeconfig
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -76,6 +77,32 @@ pipeline {
             }
         }
         // --- END OF NEW DOCKER STAGES ---
+        // --- ADD THIS ENTIRE STAGE ---
+        stage('Deploy to Kubernetes') {
+             steps {
+                 echo "Deploying image ${env.DOCKER_IMAGE} to Kubernetes namespace ${env.K8S_NAMESPACE}..."
+                 script {
+                     // This assumes kubectl is installed on the agent and configured
+                     // to talk to your target cluster (e.g., via ~/.kube/config).
+                     // It also assumes Jenkins runs with permissions to execute kubectl.
+
+                     // Ensure kubectl uses the correct namespace for subsequent commands
+                     sh "kubectl config set-context --current --namespace=${env.K8S_NAMESPACE}"
+
+                     // Apply the deployment and service manifests
+                     // This creates them if they don't exist, or updates them if they do.
+                     sh "kubectl apply -f k8s/"
+
+                     // Update the image tag in the specific deployment to trigger a rollout
+                     // Uses variables defined in the environment block
+                     sh "kubectl set image deployment/${env.K8S_DEPLOYMENT} ${env.K8S_CONTAINER}=${env.DOCKER_IMAGE}"
+
+                     // Wait for the deployment rollout to complete successfully
+                     sh "kubectl rollout status deployment/${env.K8S_DEPLOYMENT}"
+                 }
+             }
+        }
+        // --- END OF NEW STAGE ---
     }
     post {
          always {
