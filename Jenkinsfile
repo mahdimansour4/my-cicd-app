@@ -47,9 +47,15 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker image: ${env.DOCKER_IMAGE}"
+                // --- DIAGNOSTIC STEPS ---
+                sh 'echo "--- Checking Workspace ---"'
+                sh 'pwd' // Print current directory
+                sh 'ls -la' // List all files (check for Dockerfile)
+                sh 'echo "--- Checking target directory ---"'
+                sh 'ls -la target/' // Check for the JAR file produced by Maven
+                sh 'echo "--- Diagnostics End ---"'
+                // --- END DIAGNOSTIC STEPS ---
                 script {
-                     // Build the image using the Dockerfile in the current directory (.)
-                     // Tag it with the full name defined in environment variables
                      docker.build(env.DOCKER_IMAGE, ".")
                 }
             }
